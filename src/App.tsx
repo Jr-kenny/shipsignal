@@ -209,16 +209,23 @@ export default function App() {
 
           <div className="space-y-5 rounded-[32px] border border-black/10 bg-white/90 p-6 shadow-[0_18px_60px_rgba(0,0,0,0.06)]">
             <div className="space-y-2">
-              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-black/55">Why this ranks</p>
-              <h2 className="text-2xl font-bold">Hackathon-ready story</h2>
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-black/55">Explanation</p>
+              <h2 className="text-2xl font-bold">What happens onchain</h2>
             </div>
 
             <div className="grid gap-3">
-              {appConfig.judgingPoints.map(point => (
-                <div key={point} className="rounded-[22px] border border-black/10 bg-white px-4 py-4 text-sm text-black/75">
-                  {point}
-                </div>
-              ))}
+              <div className="rounded-[22px] border border-black/10 bg-white px-4 py-4 text-sm text-black/75">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-black/45">Decision scope</p>
+                <p className="mt-2">{appConfig.task}</p>
+              </div>
+              <div className="rounded-[22px] border border-black/10 bg-white px-4 py-4 text-sm text-black/75">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-black/45">Consensus mode</p>
+                <p className="mt-2">{appConfig.modeLabel} keeps this result readable and consistent onchain.</p>
+              </div>
+              <div className="rounded-[22px] border border-black/10 bg-white px-4 py-4 text-sm text-black/75">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-black/45">Product summary</p>
+                <p className="mt-2">{appConfig.pitch}</p>
+              </div>
             </div>
 
             <div className="rounded-[28px] border border-dashed border-black/15 p-5">
