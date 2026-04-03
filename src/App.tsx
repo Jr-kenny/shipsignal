@@ -378,8 +378,7 @@ function renderWorkspace(kind: SceneConfig["kind"], result: Decision | null): Re
 
 function walletStateLabel(diagnostics: WalletDiagnostics | null) {
   if (!diagnostics) return "Unknown";
-  if (diagnostics.isGenLayerSnapInstalled) return "GenLayer Snap ready";
-  return diagnostics.isFlask ? "Snap not installed yet" : "Snap support not detected";
+  return diagnostics.providerLabel;
 }
 
 export default function App() {
@@ -389,7 +388,7 @@ export default function App() {
   const [primaryInput, setPrimaryInput] = useState(appConfig.primaryPlaceholder);
   const [secondaryInput, setSecondaryInput] = useState(appConfig.secondaryPlaceholder);
   const [result, setResult] = useState<Decision | null>(null);
-  const [status, setStatus] = useState("Approve the Studionet switch and the GenLayer Snap prompt when the wallet opens.");
+  const [status, setStatus] = useState("Connect your wallet and approve the Studionet switch if your provider asks.");
   const [isBusy, setIsBusy] = useState(false);
 
   const scene = scenes[appConfig.slug] ?? scenes.billshield;
@@ -408,7 +407,7 @@ export default function App() {
 
   async function onConnect() {
     try {
-      setStatus("Checking MetaMask, Studionet, and GenLayer Snap...");
+      setStatus("Checking wallet access and switching to Studionet...");
       const wallet = await connectWallet();
       setClient(wallet.client);
       setWalletAddress(wallet.walletAddress);
@@ -529,17 +528,17 @@ export default function App() {
                   style={{ backgroundColor: "var(--accent)" }}
                 >
                   <Wallet className="h-4 w-4" />
-                  {walletAddress ? "Wallet connected" : "Connect GenLayer wallet"}
+                  {walletAddress ? "Wallet connected" : "Connect wallet"}
                 </button>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-[24px] border border-black/10 bg-black/[0.03] p-4 text-sm text-black/70">
-                    <p className="font-semibold text-black">Snap status</p>
+                    <p className="font-semibold text-black">Provider</p>
                     <p className="mt-2">{walletStateLabel(walletDiagnostics)}</p>
                   </div>
                   <div className="rounded-[24px] border border-black/10 bg-black/[0.03] p-4 text-sm text-black/70">
-                    <p className="font-semibold text-black">Wallet build</p>
-                    <p className="mt-2">{walletDiagnostics ? (walletDiagnostics.isFlask ? "Flask / Snaps-ready" : "Standard extension") : "Waiting for detection"}</p>
+                    <p className="font-semibold text-black">Chain</p>
+                    <p className="mt-2">{walletDiagnostics?.currentChainId ?? "Waiting for detection"}</p>
                   </div>
                 </div>
 
