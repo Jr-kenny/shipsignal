@@ -2,22 +2,93 @@ import { createClient } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
 import { TransactionStatus } from "genlayer-js/types";
 
+type EthereumRequest = (args: { method: string; params?: unknown[] | Record<string, unknown> }) => Promise<any>;
+
 declare global {
   interface Window {
     ethereum?: {
-      request: (args: { method: string; params?: unknown[] | Record<string, unknown> }) => Promise<any>;
+      request: EthereumRequest;
     };
+  }
+}
+
+export type WalletDiagnostics = {
+  isFlask: boolean;
+  isGenLayerSnapInstalled: boolean;
+  installedSnaps: Record<string, unknown>;
+};
+
+function errorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return String((error as { message?: unknown }).message ?? "Unknown wallet error");
+  }
+
+  return String(error ?? "Unknown wallet error");
+}
+
+function formatWalletError(error: unknown, diagnostics: WalletDiagnostics | null) {
+  const message = errorMessage(error);
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("4001") || normalized.includes("user rejected") || normalized.includes("user denied")) {
+    return "Wallet request rejected. Approve the Studionet and GenLayer prompts, then try again.";
+  }
+
+  if (normalized.includes("wallet_getsnaps") || normalized.includes("wallet_requestsnaps") || normalized.includes("snap")) {
+    if (diagnostics && !diagnostics.isFlask) {
+      return "This MetaMask build does not expose Snaps for GenLayer. Use a Snaps-enabled MetaMask build and retry the connection.";
+    }
+
+    return "GenLayer Snap setup failed. Approve the Snap install prompt in MetaMask, then try again.";
+  }
+
+  if (normalized.includes("wallet_addethereumchain") || normalized.includes("wallet_switchethereumchain") || normalized.includes("chain")) {
+    return "Studionet switch failed. Approve the network switch in MetaMask, then try again.";
+  }
+
+  return `Wallet connection failed: ${message}`;
+}
+
+async function getWalletDiagnostics() {
+  if (!window.ethereum) {
+    return null;
+  }
+
+  try {
+    const probeClient = createClient({ chain: studionet });
+    const diagnostics = await probeClient.metamaskClient("npm");
+    return diagnostics as WalletDiagnostics;
+  } catch {
+    return null;
   }
 }
 
 export async function connectWallet() {
   if (!window.ethereum) {
-    throw new Error("MetaMask with the GenLayer wallet snap is required.");
+    throw new Error("MetaMask with the GenLayer Snap is required.");
   }
 
-  const accounts = (await window.ethereum.request({
-    method: "eth_requestAccounts",
-  })) as string[];
+  const diagnostics = await getWalletDiagnostics();
+  const bootstrapClient = createClient({ chain: studionet });
+
+  try {
+    await bootstrapClient.connect("studionet");
+  } catch (error) {
+    throw new Error(formatWalletError(error, diagnostics));
+  }
+
+  let accounts: string[];
+  try {
+    accounts = (await window.ethereum.request({
+      method: "eth_requestAccounts",
+    })) as string[];
+  } catch (error) {
+    throw new Error(formatWalletError(error, diagnostics));
+  }
 
   const walletAddress = accounts?.[0] as `0x${string}` | undefined;
   if (!walletAddress) {
@@ -27,14 +98,18 @@ export async function connectWallet() {
   const client = createClient({
     chain: studionet,
     account: walletAddress,
-    provider: window.ethereum,
   });
 
-  await client.connect("studionet");
+  try {
+    await client.connect("studionet");
+  } catch (error) {
+    throw new Error(formatWalletError(error, diagnostics));
+  }
 
   return {
     client,
     walletAddress,
+    diagnostics,
   };
 }
 
